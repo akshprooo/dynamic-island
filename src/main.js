@@ -8,7 +8,7 @@ gsap.from(islandContainer, {
 
 function expand_pill(){
   gsap.to(islandContainer, {
-    width:"200px",
+    width:"300px",
     ease: 'elastic.out(.5, 0.3)',
     // ease:'back.out(1, 0.5)',
     duration:1.4
@@ -37,7 +37,7 @@ function spotify_media(track){
     expand_pill();
 
     setTimeout(()=>{
-      contentContainer.innerHTML = `<dotlottie-wc
+      contentContainer.innerHTML = track.player_name=='Spotify'?`<dotlottie-wc
                 src="https://lottie.host/daed205f-d595-472a-9ae2-3c3059d7f56a/tH6cS679WV.lottie"
                 style="width: 50px;height: 50px"
                 autoplay
@@ -47,6 +47,19 @@ function spotify_media(track){
               <div class="right">
                 <h3 class="name">${track.title}</h3>
                 <img src="${track.cover_art}" alt="${track.title}-${track.artist}">
+              </div>`:`<dotlottie-wc
+                src="https://lottie.host/daed205f-d595-472a-9ae2-3c3059d7f56a/tH6cS679WV.lottie"
+                style="width: 50px;height: 50px"
+                autoplay
+                loop
+              ></dotlottie-wc>
+
+              <div class="right">
+                <h3 class="name">${track.title}</h3>
+                <div class="rightest-right" >
+                  <span>${track.artist}</span>
+                  <span>${track.player_name}</span>
+                </div>
               </div>`;
       const tl = gsap.timeline();  
       tl.from(".content .right .name", {
@@ -62,7 +75,6 @@ function spotify_media(track){
     current_song = track;
   }
 }
-
 
 // spotify_media("Ishqa Ve", "Zeesha Ali", "https://images.lyricstelling.com/2025/08/ishqa-ve-zeeshan-ali-500x500.webp")
 setInterval(async () => {
