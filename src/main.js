@@ -22,6 +22,9 @@ function collapse_pill(){
     ease: 'elastic.out(.1, 0.7)',
     duration:1.4
   })
+  current_song.title="";
+  current_song.artist="";
+  current_song.cover_art="";
 }
 
 
