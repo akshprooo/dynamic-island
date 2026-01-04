@@ -1,87 +1,182 @@
 const islandContainer = document.querySelector("#island");
 const contentContainer = document.querySelector('.content');
 
-// load
+let isIdle = true;
+let isExpanded = false;
+let isAnimating = false;
+let current_song = { title: "", artist: "", cover_art: "" };
+let clockInterval = null;
+
 gsap.from(islandContainer, {
   opacity: 0,
 });
 
-function expand_pill(){
+function updateClock() {
+  if (!isIdle) return;
+  
+  const now = new Date();
+  const dateStr = now.toLocaleDateString('en-IN', {
+    day: '2-digit',
+    month: 'short',
+    year: 'numeric'
+  });
+  const timeStr = now.toLocaleTimeString('en-IN', {
+    hour: '2-digit',
+    minute: '2-digit',
+    second: '2-digit',
+    hour12: true
+  });
+  
+  contentContainer.innerHTML = `
+    <div class="idle basics">
+      <div class="date">${dateStr}</div>
+      <div class="time">${timeStr}</div>
+    </div>`;
+}
+
+function startIdleClock() {
+  if (clockInterval) {
+    clearInterval(clockInterval);
+  }
+  
+  isIdle = true;
+  updateClock(); // Update immediately
+  clockInterval = setInterval(updateClock, 1000);
+  
   gsap.to(islandContainer, {
-    width:"300px",
+    width: "200px",
+    ease: 'power2.inOut',
+    duration: 0.8
+  });
+}
+
+function stopIdleClock() {
+  if (clockInterval) {
+    clearInterval(clockInterval);
+    clockInterval = null;
+  }
+  isIdle = false;
+}
+
+function expand_pill() {
+  if (isExpanded || isAnimating) return;
+  contentContainer.innerHTML=''
+  isAnimating = true;
+  isExpanded = true;
+  stopIdleClock();
+  
+  gsap.to(islandContainer, {
+    width: "300px",
     ease: 'elastic.out(.5, 0.3)',
-    // ease:'back.out(1, 0.5)',
-    duration:1.4
-  })
+    duration: 1.4,
+    onComplete: () => {
+      isAnimating = false;
+    }
+  });
 }
 
-function collapse_pill(){
-  contentContainer.innerHTML = '';
+function collapse_pill() {
+  if (!isExpanded || isAnimating) return;
+  contentContainer.innerHTML=''
+  isAnimating = true;
+  isExpanded = false;
   gsap.to(islandContainer, {
-    width:'40px',
+    width: '200px',
     ease: 'elastic.out(.1, 0.7)',
-    duration:1.4
-  })
-  current_song.title="";
-  current_song.artist="";
-  current_song.cover_art="";
+    duration: 1.4,
+    onComplete: () => {
+      current_song.title = "";
+      current_song.artist = "";
+      current_song.cover_art = "";
+      isAnimating = false;
+      startIdleClock();
+    }
+  });
 }
 
+function escapeHtml(text) {
+  const div = document.createElement('div');
+  div.textContent = text;
+  return div.innerHTML;
+}
 
-let current_song = {title:"", artist:"", cover_art:""};
-function spotify_media(track){
-  if (current_song.title == track.title || current_song.artist == track.artist || current_song.cover_art == track.cover_art){
+function hasTrackChanged(newTrack) {
+  return current_song.title !== newTrack.title || 
+         current_song.artist !== newTrack.artist || 
+         current_song.cover_art !== newTrack.cover_art;
+}
+
+function spotify_media(track) {
+  if (!hasTrackChanged(track)) {
+    return;
+  }
+
+  expand_pill();
+  current_song = track;
+
+  setTimeout(() => {
+    if (track.player_name === 'Spotify') {
+      contentContainer.innerHTML = `
+        <dotlottie-wc
+          src="https://lottie.host/daed205f-d595-472a-9ae2-3c3059d7f56a/tH6cS679WV.lottie"
+          style="width: 50px;height: 50px"
+          autoplay
+          loop
+        ></dotlottie-wc>
+
+        <div class="right">
+          <h3 class="name">${escapeHtml(track.title)}</h3>
+          <img src="${track.cover_art}" alt="${escapeHtml(track.title)}-${escapeHtml(track.artist)}">
+        </div>`;
+    } else {
+      contentContainer.innerHTML = `
+        <dotlottie-wc
+          src="https://lottie.host/daed205f-d595-472a-9ae2-3c3059d7f56a/tH6cS679WV.lottie"
+          style="width: 50px;height: 50px"
+          autoplay
+          loop
+        ></dotlottie-wc>
+
+        <div class="right">
+          <h3 class="name">${escapeHtml(track.title)}</h3>
+          <div class="rightest-right">
+            <span>${escapeHtml(track.artist)}</span>
+          </div>
+        </div>`;
+    }
+
+    const tl = gsap.timeline();
+    tl.from(".content .right .name", {
+      opacity: 0
+    }, "together");
+    tl.from(".content dotlottie-wc", {
+      opacity: 0
+    }, "together");
+    tl.from(".content .right img, .content .right .rightest-right", {
+      opacity: 0
+    }, "together");
+  }, 1400);
+}
+
+async function updateMediaStatus() {
+  try {
+    const track = await window.__TAURI__.core.invoke("spotify_now_playing");
     
-  }
-  else{
-    expand_pill();
-
-    setTimeout(()=>{
-      contentContainer.innerHTML = track.player_name=='Spotify'?`<dotlottie-wc
-                src="https://lottie.host/daed205f-d595-472a-9ae2-3c3059d7f56a/tH6cS679WV.lottie"
-                style="width: 50px;height: 50px"
-                autoplay
-                loop
-              ></dotlottie-wc>
-
-              <div class="right">
-                <h3 class="name">${track.title}</h3>
-                <img src="${track.cover_art}" alt="${track.title}-${track.artist}">
-              </div>`:`<dotlottie-wc
-                src="https://lottie.host/daed205f-d595-472a-9ae2-3c3059d7f56a/tH6cS679WV.lottie"
-                style="width: 50px;height: 50px"
-                autoplay
-                loop
-              ></dotlottie-wc>
-
-              <div class="right">
-                <h3 class="name">${track.title}</h3>
-                <div class="rightest-right" >
-                  <span>${track.artist}</span>
-                  <span>${track.player_name}</span>
-                </div>
-              </div>`;
-      const tl = gsap.timeline();  
-      tl.from(".content .right .name", {
-        opacity:0
-      }, "together");
-      tl.from(".content dotlottie-wc", {
-        opacity:0
-      }, "together")
-      tl.from(".content .right img", {
-        opacity:0
-      }, "together")
-    }, 1400)
-    current_song = track;
+    if (track && track.is_playing === true) {
+      spotify_media(track);
+    } else {
+      if (current_song.title !== "") {
+        collapse_pill();
+      }
+    }
+  } catch (error) {
+    console.error('Error fetching media:', error);
+    if (current_song.title !== "") {
+      collapse_pill();
+    }
   }
 }
 
-// spotify_media("Ishqa Ve", "Zeesha Ali", "https://images.lyricstelling.com/2025/08/ishqa-ve-zeeshan-ali-500x500.webp")
-setInterval(async () => {
-  const track = await window.__TAURI__.core.invoke("spotify_now_playing");
-  if (track.is_playing==true){
-    spotify_media(track);
-  }else{
-    collapse_pill();
-  }
-}, 1000);
+startIdleClock();
+
+setInterval(updateMediaStatus, 1000);
